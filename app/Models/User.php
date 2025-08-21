@@ -51,4 +51,20 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+	public function canAccess($certification)
+	{
+    // Simple implementation - adjust based on your business logic
+    if ($this->tier === 'pro') {
+        return true;
+    }
+    
+    // Free users might only have access to certain certifications
+    return in_array($certification->slug, ['pmp', 'aws-saa', 'itil-foundation']);
+	}
+	public function certifications()
+	{
+    return $this->belongsToMany(Certification::class, 'user_certifications')
+                ->withPivot('status')
+                ->withTimestamps();
+	}
 }

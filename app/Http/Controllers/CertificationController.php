@@ -30,11 +30,20 @@ class CertificationController extends Controller
     return redirect()->route('certifications.show',$certification);
   }
   
-  public function show($slug){
-    $cert = Certification::where('slug', $slug)
+//  public function show($slug){
+//    $cert = Certification::where('slug', $slug)
+//        ->with('domains.topics.questions')
+//        ->firstOrFail();
+//
+//    return view('certifications.show', compact('cert'));
+//	}
+// }
+
+public function show($slug)
+{
+    $cert = \App\Models\Certification::where('slug', $slug)
         ->with('domains.topics.questions')
         ->firstOrFail();
 
     return view('certifications.show', compact('cert'));
-	}
 }

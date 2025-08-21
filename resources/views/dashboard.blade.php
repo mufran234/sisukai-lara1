@@ -1,48 +1,37 @@
 @extends('layouts.app')
 
-@section('title', 'Dashboard')
-
 @section('content')
-<div class="max-w-6xl mx-auto p-6 space-y-8">
+<div class="max-w-6xl mx-auto py-10">
+    <h1 class="text-3xl font-bold mb-6 text-center">Your Dashboard</h1>
 
-    <!-- Welcome + Streak -->
-    <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold">Welcome back, {{ Auth::user()->name }}</h1>
-        <x-streak :count="3" />
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        @foreach($certs as $cert)
+        <div class="bg-white shadow rounded-xl p-6 text-center border hover:shadow-lg transition">
+            <h2 class="text-xl font-semibold mb-2">{{ $cert->name }}</h2>
+            <p class="text-gray-500 mb-4">{{ $cert->description ?? 'Certification exam prep' }}</p>
+
+            @if($cert->progress)
+                <div class="mb-4">
+                    <p class="text-sm">First: {{ $cert->progress['first'] }}%</p>
+                    <p class="text-sm">Last: {{ $cert->progress['last'] }}%</p>
+                    <p class="text-sm">Best: {{ $cert->progress['best'] }}%</p>
+                    <div class="w-full bg-gray-200 rounded-full h-3 mt-2">
+                        <div class="bg-green-500 h-3 rounded-full" style="width: {{ $cert->progress['last'] }}%"></div>
+                    </div>
+                </div>
+                <a href="{{ route('exams.take', $cert->slug) }}" 
+                   class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    Continue
+                </a>
+            @else
+                <div class="mb-4 text-gray-400">No attempts yet</div>
+                <a href="{{ route('exams.take', $cert->slug) }}" 
+                   class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                    Start Exam
+                </a>
+            @endif
+        </div>
+        @endforeach
     </div>
-
-    <!-- Active Certifications -->
-    <x-card>
-        <h2 class="font-semibold mb-4">Your Active Certifications</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <x-card>
-                <h3 class="text-lg font-semibold">PMP</h3>
-                <x-progress-bar :value="45"/>
-                <p class="text-sm mt-2 text-gray-600">Progress: 45%</p>
-                <x-button class="mt-3">Continue</x-button>
-            </x-card>
-
-            <x-card>
-                <h3 class="text-lg font-semibold">AWS SAA</h3>
-                <x-progress-bar :value="20"/>
-                <p class="text-sm mt-2 text-gray-600">Progress: 20%</p>
-                <x-button class="mt-3">Continue</x-button>
-            </x-card>
-        </div>
-    </x-card>
-
-    <!-- Coming Soon -->
-    <x-card>
-        <h2 class="font-semibold mb-4">Other Certifications (Coming Soon)</h2>
-        <div class="flex flex-wrap gap-2">
-            <x-badge>ITIL Foundation</x-badge>
-            <x-badge>CISSP</x-badge>
-            <x-badge>Azure Fundamentals</x-badge>
-            <x-badge>CCNA</x-badge>
-        </div>
-    </x-card>
-
-    <!-- Upgrade Banner -->
-    <x-upgrade-banner />
 </div>
 @endsection

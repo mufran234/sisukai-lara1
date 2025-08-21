@@ -2,20 +2,40 @@
 
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\{
+  LandingController, PagesController, DashboardController, CertificationController, ExamController, ResultController, QuestionImportController, EnsureAdmin
+};
+use App\Http\Controllers\Admin\{
+  AdminController, UserAdminController, CertificationAdminController, DomainAdminController, TopicAdminController, QuestionAdminController, AnswerAdminController, ImportController
+};
 
-// Added Controllers - 20.08.25
-//use App\Http\Controllers\CertificationController;
-//use App\Http\Controllers\ExamController;
-//use App\Http\Controllers\ResultController;
-//use App\Http\Controllers\Admin\ImportController;
+// Public pages
+Route::get('/', [LandingController::class, 'index'])->name('landing');
+Route::get('/pricing', [PagesController::class, 'pricing'])->name('pricing');
+Route::get('/faq', [PagesController::class, 'faq'])->name('faq');
+Route::get('/blog', [PagesController::class, 'blog'])->name('blog');
+Route::get('/contact', [PagesController::class, 'contact'])->name('contact');
+Route::post('/contact', [PagesController::class, 'submitContact'])->name('contact.submit');
 
-// Route::get('/', function () {
-//    return view('welcome');
-// });
+// Auth-required
+Route::middleware(['auth'])->group(function () {
+    Route::get('/results', [ResultController::class, 'index'])->name('results.index');
+	Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+});
+
+// Admin area
+Route::middleware(['auth', EnsureAdmin::class])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/', fn() => redirect()->route('admin.certifications.index'))->name('index');
+
+    Route::resource('certifications', AdminCertificationController::class)->except(['show']);
+    Route::get('questions/import', [QuestionImportController::class, 'showForm'])->name('questions.import.form');
+    Route::post('questions/import', [QuestionImportController::class, 'import'])->name('questions.import');
+});
+
+// May need delete
 
 // Replace the current root route:
 Route::get('/', function () { return view('landing'); })->name('home');
-
 
 Route::get('/dashboard', function () {
     return view('dashboard');
@@ -29,15 +49,7 @@ Route::middleware('auth')->group(function () {
 
 require __DIR__.'/auth.php';
 
-#<?php
 
-#use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\{
-  DashboardController, CertificationController, ExamController, ResultController
-};
-use App\Http\Controllers\Admin\{
-  AdminController, UserAdminController, CertificationAdminController, DomainAdminController, TopicAdminController, QuestionAdminController, AnswerAdminController, ImportController
-};
 
 Route::view('/', 'landing')->name('landing');
 
@@ -49,7 +61,14 @@ require __DIR__.'/auth.php';
 
 Route::get('/certifications/{slug}', [CertificationController::class, 'show'])
     ->name('certifications.show');
-	
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/certifications/{slug}/exam', [ExamController::class, 'start'])
+        ->name('certifications.exam.start');
+    Route::post('/certifications/{slug}/exam/submit', [ExamController::class, 'submit'])
+        ->name('certifications.exam.submit');
+});
+
 Route::middleware(['auth','verified'])->group(function () {
   Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 

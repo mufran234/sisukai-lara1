@@ -3,9 +3,10 @@
 @section('content')
 <div class="max-w-4xl mx-auto">
     <h1 class="text-2xl font-bold mb-4">Practice Exam: {{ $cert->name }}</h1>
-    <p class="mb-2">Duration: {{ $duration }} minutes</p>
-    <form method="POST" action="#">
-        @csrf
+    <p class="mb-2 text-gray-600">Duration: {{ $duration }} minutes</p>
+
+	<form method="POST" action="{{ route('certifications.exam.submit', $cert->slug) }}">
+		@csrf
 
         @foreach($questions as $index => $q)
             <div class="mb-6 p-4 border rounded-lg bg-white shadow">

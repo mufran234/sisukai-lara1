@@ -2,80 +2,97 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{Certification, Question, ExamAttempt, Answer};
+use App\Models\Certification;
+use App\Models\Question;
 use Illuminate\Http\Request;
 
 class ExamController extends Controller
 {
-  public function start(Certification $certification, string $type, Request $request)
-  {
-    $count = $type==='diagnostic' ? 30 : ($type==='full' ? 180 : (int)$request->input('count',20));
-    // pick questions across topics for this certification
-    $questionIds = Question::whereIn('topic_id', $certification->topics()->pluck('id'))
-                    ->inRandomOrder()->limit($count)->pluck('id');
-
-    $attempt = ExamAttempt::create([
-      'user_id'=>auth()->id(),
-      'certification_id'=>$certification->id,
-      'attempt_type'=>$type,
-      'started_at'=>now(),
-      'duration_seconds'=> $type==='full' ? $certification->duration*60 : ($type==='diagnostic' ? 45*60 : 30*60),
-    ]);
-
-    session([
-      "exam.$attempt->id.questions"=>$questionIds->toArray(),
-      "exam.$attempt->id.ends_at"=>now()->addSeconds($attempt->duration_seconds)->toIso8601String()
-    ]);
-
-    return redirect()->route('exam.take',$attempt);
-  }
-
-  public function take(ExamAttempt $attempt)
-  {
-    abort_if($attempt->user_id !== auth()->id(), 403);
-    $ids = session("exam.$attempt->id.questions", []);
-    $questions = \App\Models\Question::with('answers')->find($ids);
-    $endsAt = session("exam.$attempt->id.ends_at");
-    return view('exams.take', compact('attempt','questions','endsAt'));
-  }
-
-  public function submit(ExamAttempt $attempt, Request $request)
-  {
-    abort_if($attempt->user_id !== auth()->id(), 403);
-    $payload = $request->input('answers', []);
-    $correct=0; $total=count($payload);
-
-    foreach ($payload as $qid=>$aid) {
-      $ans = Answer::where('id',$aid)->where('question_id',$qid)->first();
-      $ok = $ans ? (bool)$ans->is_correct : false;
-      $attempt->answers()->create([
-        'question_id'=>$qid, 'answer_id'=>$aid, 'is_correct'=>$ok
-      ]);
-      if ($ok) $correct++;
-    }
-
-    $score = $total? round(($correct/$total)*100) : 0;
-    $attempt->update(['score'=>$score,'completed_at'=>now()]);
-    return redirect()->route('results.show',$attempt);
-  }
-  
-      public function start($slug)
+    public function start($slug)
     {
         $cert = Certification::where('slug', $slug)
             ->with('domains.topics.questions')
             ->firstOrFail();
 
-        // Collect all questions for this certification
+        // Random 10 Qs for MVP
         $questions = $cert->domains
             ->flatMap(fn($d) => $d->topics->flatMap(fn($t) => $t->questions))
             ->shuffle()
-            ->take(10); // limit to 10 for MVP
+            ->take(10);
 
         return view('exams.start', [
             'cert' => $cert,
             'questions' => $questions,
-            'duration' => $cert->duration ?? 30, // fallback 30 min
+            'duration' => $cert->duration ?? 30,
         ]);
     }
-	
+
+public function submit(Request $request, $slug)
+{
+    $cert = \App\Models\Certification::where('slug', $slug)
+        ->with('domains.topics.questions')
+        ->firstOrFail();
+
+    $answers = $request->input('answers', []);
+    $total = count($answers);
+    $correct = 0;
+
+    $topicScores = [];
+    foreach ($answers as $qid => $choice) {
+        $question = \App\Models\Question::find($qid);
+        if (!$question) continue;
+
+        $isCorrect = ((string)$choice === (string)$question->correct_answer);
+        if ($isCorrect) {
+            $correct++;
+        }
+
+        if ($question->topic_id) {
+            $topicName = $question->topic->name ?? 'General';
+            if (!isset($topicScores[$topicName])) {
+                $topicScores[$topicName] = ['total' => 0, 'wrong' => 0];
+            }
+            $topicScores[$topicName]['total']++;
+            if (!$isCorrect) {
+                $topicScores[$topicName]['wrong']++;
+            }
+        }
+    }
+
+    $score = $total > 0 ? round(($correct / $total) * 100) : 0;
+
+    // capture time_taken from hidden input
+    $timeTaken = $request->input('time_taken', null);
+
+    // Save results
+    \App\Models\Result::create([
+        'user_id' => auth()->id(),
+        'certification_id' => $cert->id,
+        'score' => $score,
+        'total' => $total,
+        'time_taken' => $timeTaken,
+        'breakdown' => json_encode($topicScores),
+    ]);
+
+    $weakest = collect($topicScores)
+        ->map(function ($data, $name) {
+            return [
+                'name' => $name,
+                'wrong' => $data['wrong'],
+                'total' => $data['total'],
+                'ratio' => $data['wrong'] / max($data['total'], 1),
+            ];
+        })
+        ->sortByDesc('ratio')
+        ->take(3);
+
+    return view('exams.result', [
+        'cert' => $cert,
+        'score' => $score,
+        'total' => $total,
+        'correct' => $correct,
+        'weakest' => $weakest,
+        'timeTaken' => $timeTaken,
+    ]);
+}
 }

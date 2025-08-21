@@ -1,14 +1,29 @@
-@extends('admin.layout')
+@extends('layouts.app')
 
-@section('admin')
-<h1 class="text-2xl font-bold mb-4">Add Certification</h1>
-<form method="POST" action="{{ route('admin.certifications.store') }}" class="bg-white rounded-2xl shadow p-6">
-  @csrf
-  @include('admin.partials._field',['label'=>'Name','name'=>'name'])
-  @include('admin.partials._field',['label'=>'Slug','name'=>'slug','hint'=>'Leave blank to auto-generate'])
-  @include('admin.partials._field',['label'=>'Duration (minutes)','name'=>'duration','type'=>'number'])
-  @include('admin.partials._field',['label'=>'Active?','name'=>'is_active','type'=>'checkbox','value'=>true])
-  @include('admin.partials._field',['label'=>'Description','name'=>'description','type'=>'textarea'])
-  <x-button type="submit">Create</x-button>
-</form>
+@section('content')
+<div class="max-w-3xl mx-auto">
+    <h1 class="text-2xl font-bold mb-4">Add Certification</h1>
+
+    <form method="POST" action="{{ route('admin.certifications.store') }}" class="bg-white p-6 rounded-lg shadow space-y-4">
+        @csrf
+        <div>
+            <label class="block font-medium">Name</label>
+            <input type="text" name="name" class="mt-1 w-full border rounded p-2" required>
+        </div>
+        <div>
+            <label class="block font-medium">Slug (optional)</label>
+            <input type="text" name="slug" class="mt-1 w-full border rounded p-2">
+        </div>
+        <div>
+            <label class="block font-medium">Duration (minutes)</label>
+            <input type="number" name="duration" min="1" class="mt-1 w-full border rounded p-2">
+        </div>
+        <div>
+            <label class="inline-flex items-center">
+                <input type="checkbox" name="is_active" value="1" checked class="mr-2"> Active
+            </label>
+        </div>
+        <button class="bg-emerald-600 text-white px-4 py-2 rounded">Save</button>
+    </form>
+</div>
 @endsection

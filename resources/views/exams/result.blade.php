@@ -1,28 +1,26 @@
-<x-app-layout>
-  <div class="max-w-4xl mx-auto p-6">
-    <h1 class="text-2xl font-bold mb-2">Result — {{ $attempt->certification->name }}</h1>
-    <div class="text-gray-600 mb-4">Score: <span class="font-semibold">{{ $attempt->score }}%</span></div>
+@extends('layouts.app')
 
-    <h2 class="font-semibold mt-4 mb-2">Domain Breakdown</h2>
-    <div class="grid sm:grid-cols-3 gap-4">
-      @foreach($domainStats as $d)
-        <div class="border rounded-xl p-4">
-          <div class="font-semibold">{{ $d['name'] }}</div>
-          <div class="text-2xl">{{ $d['score'] }}%</div>
-        </div>
-      @endforeach
+@section('content')
+<div class="max-w-2xl mx-auto text-center py-10">
+    <h1 class="text-3xl font-bold mb-6">Exam Results</h1>
+    <p class="text-lg">Certification: <span class="font-semibold">{{ $cert->name }}</span></p>
+    <p class="text-lg">Score: <span class="font-bold {{ $score >= 70 ? 'text-green-600' : 'text-red-600' }}">{{ $score }}%</span></p>
+    <p class="text-lg">Time Taken: {{ $timeTaken ?? 'N/A' }} minutes</p>
+
+    <div class="mt-6">
+        <h2 class="text-xl font-semibold mb-2">Your Weakest Topics</h2>
+        <ul class="list-disc list-inside text-left inline-block">
+            @forelse($weakest as $topic)
+                <li>{{ $topic['name'] }} ({{ $topic['wrong'] }}/{{ $topic['total'] }} wrong)</li>
+            @empty
+                <li>Great work! No weak topics detected.</li>
+            @endforelse
+        </ul>
     </div>
 
-    <h2 class="font-semibold mt-6 mb-2">Weakest Topics</h2>
-    <ul class="list-disc list-inside text-gray-700">
-      @foreach($weakest as $w)
-        <li>{{ $w['name'] }} — {{ $w['score'] }}%</li>
-      @endforeach
-    </ul>
-
-    <div class="mt-6 flex gap-3">
-      <a href="{{ route('certifications.show',$attempt->certification) }}" class="px-4 py-2 border rounded-lg">Practice Again</a>
-      <a href="{{ route('dashboard') }}" class="px-4 py-2 border rounded-lg">Back to Dashboard</a>
+    <div class="mt-8 flex justify-center gap-4">
+        <a href="{{ route('dashboard') }}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Back to Dashboard</a>
+        <a href="{{ route('exams.take', $cert->slug) }}" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Retake Exam</a>
     </div>
-  </div>
-</x-app-layout>
+</div>
+@endsection
